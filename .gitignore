@@ -1,0 +1,63 @@
+# ========================
+# Python 相关
+# ========================
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+
+# 虚拟环境
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IPython Notebook
+.ipynb_checkpoints
+
+# PyCharm 配置文件
+.idea/
+*.iml
+.pydevproject
+
+# VSCode 配置文件
+.vscode/
+
+# ========================
+# 数据集和大文件
+# ========================
+#dataset/
+output/
+results/
+logs/
+temp/
+#*.wav
+#*.mp3
+#*.mp4
+#*.avi
+#*.mov
+#*.mkv
+
+# 标注文件或缓存文件（如果你有）
+*.jsonl
+*.log
+
+# ========================
+# 模型文件
+# ========================
+*.pth
+*.pkl
+*.pt
+*.ckpt
+*.onnx
+
+# ========================
+# 其他系统文件
+# ========================
+.DS_Store
+Thumbs.db
+*.swp
+*~
+\#*\#
