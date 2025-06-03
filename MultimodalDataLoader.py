@@ -7,9 +7,9 @@ import pandas as pd
 from TextFeatureExtractor import TextFeatureExtractor
 
 
-# ======================== 数据加载和处理 ========================
+# ======================== Data Loading and Processing ========================
 def _find_matching_files(directory, extensions):
-    """查找匹配的文件"""
+    """Find matching files"""
     if not directory or not os.path.exists(directory):
         return []
 
@@ -21,13 +21,13 @@ def _find_matching_files(directory, extensions):
                 if os.path.isfile(full_path):
                     matching_files.append(full_path)
     except Exception as e:
-        print(f"遍历目录 {directory} 时出错: {e}")
+        print(f"Error traversing directory {directory}: {e}")
 
     return sorted(matching_files)
 
 
 class MultimodalDataLoader:
-    """多模态数据加载器 - 增强版"""
+    """Multimodal data loader - Enhanced version"""
 
     def __init__(self, config):
         self.config = config
@@ -36,24 +36,23 @@ class MultimodalDataLoader:
         self.visual_extractor = VisualFeatureExtractor()
         self.annotation_df = None
 
-        # 加载标注数据
+        # Load annotation data
         if os.path.exists(config.annotation_file):
             self.annotation_df = pd.read_csv(config.annotation_file)
-            print(f"✅ 成功加载标注文件，共 {len(self.annotation_df)} 条记录")
+            print(f"✅ Successfully loaded annotation file with {len(self.annotation_df)} records")
         else:
-            print("⚠️ 未找到标注文件")
+            print("⚠️ Annotation file not found")
 
     def load_annotation_features(self):
-        """加载标注特征"""
-        """加载标注特征"""
-        print("正在加载标注特征...")
+        """Load annotation features"""
+        print("Loading annotation features...")
 
         if not hasattr(self.config, 'annotation_file') or not self.config.annotation_file:
-            print("未配置标注文件路径")
+            print("Annotation file path not configured")
             return None, None
 
         try:
-            # 尝试读取标注文件
+            # Try to read annotation file
             if self.config.annotation_file.endswith('.csv'):
                 df = pd.read_csv(self.config.annotation_file)
             elif self.config.annotation_file.endswith('.json'):
@@ -65,42 +64,42 @@ class MultimodalDataLoader:
                 else:
                     df = pd.DataFrame([data])
             else:
-                print(f"不支持的标注文件格式: {self.config.annotation_file}")
+                print(f"Unsupported annotation file format: {self.config.annotation_file}")
                 return None, None
 
-            # 提取特征和标签
+            # Extract features and labels
             annotation_features = []
             annotation_labels = []
 
-            # 假设标注文件包含以下列：
-            # - label: 真实性标签 (0/1 或 False/True)
-            # - confidence: 置信度
-            # - emotion: 情感标签
+            # Assume annotation file contains the following columns:
+            # - label: truth label (0/1 or False/True)
+            # - confidence: confidence score
+            # - emotion: emotion label
             # - other features...
 
             for idx, row in df.iterrows():
                 feature_vector = []
 
-                # 提取数值特征
+                # Extract numeric features
                 for col in df.columns:
                     if col.lower() not in ['label', 'filename', 'file', 'id']:
                         if pd.api.types.is_numeric_dtype(df[col]):
                             feature_vector.append(row[col])
                         elif isinstance(row[col], str):
-                            # 对字符串特征进行简单编码
-                            feature_vector.append(hash(row[col]) % 1000)  # 简单哈希编码
+                            # Simple encoding for string features
+                            feature_vector.append(hash(row[col]) % 1000)  # Simple hash encoding
 
                 if feature_vector:
                     annotation_features.append(feature_vector)
 
-                    # 提取标签
+                    # Extract labels
                     if 'label' in row:
                         label = row['label']
                         if isinstance(label, str):
                             label = 1 if label.lower() in ['true', '1', 'real'] else 0
                         annotation_labels.append(int(label))
                     else:
-                        # 如果没有标签列，尝试从文件名推断
+                        # If no label column, try to infer from filename
                         filename = row.get('filename', row.get('file', ''))
                         if 'true' in str(filename).lower() or 'real' in str(filename).lower():
                             annotation_labels.append(1)
@@ -110,78 +109,78 @@ class MultimodalDataLoader:
             if annotation_features:
                 annotation_features = np.array(annotation_features)
                 annotation_labels = np.array(annotation_labels)
-                print(f"标注特征加载完成: {annotation_features.shape}")
+                print(f"Annotation features loaded successfully: {annotation_features.shape}")
                 return annotation_features, annotation_labels
             else:
-                print("标注文件中未找到有效特征")
+                print("No valid features found in annotation file")
                 return None, None
 
         except Exception as e:
-            print(f"加载标注文件时出错: {e}")
+            print(f"Error loading annotation file: {e}")
             return None, None
 
     def load_labels(self):
-        """加载标签"""
-        print("正在整合所有模态的标签...")
+        """Load labels"""
+        print("Integrating labels from all modalities...")
 
         all_labels = []
 
-        # 从各个模态收集标签
+        # Collect labels from various modalities
         try:
-            # 音频标签
+            # Audio labels
             _, audio_labels = self.load_audio_features()
             if audio_labels is not None:
                 all_labels.extend(audio_labels.tolist())
 
-            # 文本标签
+            # Text labels
             _, text_labels = self.load_text_features()
             if text_labels is not None:
                 all_labels.extend(text_labels.tolist())
 
-            # 视觉标签
+            # Visual labels
             _, visual_labels = self.load_visual_features()
             if visual_labels is not None:
                 all_labels.extend(visual_labels.tolist())
 
-            # 标注标签
+            # Annotation labels
             _, annotation_labels = self.load_annotation_features()
             if annotation_labels is not None:
                 all_labels.extend(annotation_labels.tolist())
 
             if all_labels:
                 labels = np.array(all_labels)
-                print(f"标签加载完成: {len(labels)} 个样本")
-                print(f"标签分布 - 真实: {np.sum(labels)}, 虚假: {len(labels) - np.sum(labels)}")
+                print(f"Labels loaded successfully: {len(labels)} samples")
+                print(f"Label distribution - True: {np.sum(labels)}, Fake: {len(labels) - np.sum(labels)}")
                 return labels
             else:
-                print("未找到任何标签")
+                print("No labels found")
                 return None
 
         except Exception as e:
-            print(f"加载标签时出错: {e}")
+            print(f"Error loading labels: {e}")
             return None
 
     def _process_category(self, category, label):
-        """处理特定类别的数据 - 增强版"""
-        print(f"\n📁 处理 {'真话' if label == 0 else '假话'} 数据...")
+        """Process data for a specific category - Enhanced version"""
+        print(f"\n📁 Processing {'truth' if label == 0 else 'lie'} data...")
 
         category_data = []
 
-        # 获取视频目录
+        # Get video directory
         if category == "true":
             video_dir = self.config.video_true
         else:
             video_dir = self.config.video_false
 
-        # 获取视频文件
+        # Get video files
         video_files = []
         for ext in ['*.mp4', '*.avi', '*.mov']:
             video_files.extend(glob.glob(os.path.join(video_dir, ext)))
 
-        print(f"   找到 {len(video_files)} 个视频文件")
+        print(f"   Found {len(video_files)} video files")
 
         if len(video_files) == 0:
-            print(f"   ⚠️ 视频目录为空: {video_dir}")
+            print(f"   ⚠️ Video directory is empty: {video_dir}")
             return category_data
 
         for i, video_file in enumerate(video_files):
@@ -189,29 +188,29 @@ class MultimodalDataLoader:
                 filename = os.path.basename(video_file)
                 file_id = filename.replace('.mp4', '').replace('.avi', '').replace('.mov', '')
 
-                print(f"   处理文件 {i + 1}/{len(video_files)}: {filename}")
+                print(f"   Processing file {i + 1}/{len(video_files)}: {filename}")
 
-                # 1. 智能查找匹配的文本和音频文件
+                # 1. Smart search for matching text and audio files
                 text_content, audio_file = _find_matching_files(video_file, category)
 
-                # 2. 提取文本特征
+                # 2. Extract text features
                 text_features = self.text_extractor.extract_text_features(text_content)
 
-                # 3. 提取音频特征
+                # 3. Extract audio features
                 if audio_file:
                     audio_features = self.audio_extractor.extract_comprehensive_features(audio_file)
                 else:
                     audio_features = np.zeros(64)
-                    print(f"      ⚠️ 使用零音频特征")
+                    print(f"      ⚠️ Using zero audio features")
 
-                # 4. 提取视觉特征
-                print(f"      🎥 提取视觉特征...")
+                # 4. Extract visual features
+                print(f"      🎥 Extracting visual features...")
                 visual_features = self.visual_extractor.extract_video_features(video_file)
 
-                # 5. 获取标注特征
+                # 5. Get annotation features
                 annotation_features = self._get_annotation_features(filename)
 
-                # 组合数据
+                # Combine data
                 sample_data = {
                     'file_id': file_id,
                     'audio_features': audio_features,
@@ -220,67 +219,67 @@ class MultimodalDataLoader:
                     'annotation_features': annotation_features,
                     'label': label,
                     'category': category,
-                    'text_content': text_content  # 保存文本内容用于后续分析
+                    'text_content': text_content  # Save text content for further analysis
                 }
 
                 category_data.append(sample_data)
-                print(f"      ✅ 样本处理完成")
+                print(f"      ✅ Sample processing completed")
 
             except Exception as e:
-                print(f"   ❌ 处理文件 {filename} 时出错: {e}")
+                print(f"   ❌ Error processing file {filename}: {e}")
                 import traceback
                 traceback.print_exc()
                 continue
 
-        print(f"   ✅ 成功处理 {len(category_data)} 个样本")
+        print(f"   ✅ Successfully processed {len(category_data)} samples")
         return category_data
 
     def load_all_data(self):
-        """加载所有数据"""
-        print("🔄 开始加载所有数据...")
+        """Load all data"""
+        print("🔄 Starting to load all data...")
 
         try:
-            # 加载音频特征
-            print("🔄 开始加载音频特征...")
+            # Load audio features
+            print("🔄 Loading audio features...")
             audio_data = self.load_audio_features()
             if audio_data[0] is not None:
                 audio_features, audio_labels = audio_data
-                print(f"✅ 音频特征加载完成，形状: {audio_features.shape}")
+                print(f"✅ Audio features loaded successfully, shape: {audio_features.shape}")
             else:
                 audio_features, audio_labels = None, None
-                print("⚠️ 音频特征加载失败")
+                print("⚠️ Failed to load audio features")
 
-            # 加载文本特征
-            print("🔄 开始加载文本特征...")
+            # Load text features
+            print("🔄 Loading text features...")
             text_data = self.load_text_features()
             if text_data[0] is not None:
                 text_features, text_labels = text_data
-                print(f"✅ 文本特征加载完成，形状: {text_features.shape}")
+                print(f"✅ Text features loaded successfully, shape: {text_features.shape}")
             else:
                 text_features, text_labels = None, None
-                print("⚠️ 文本特征加载失败")
+                print("⚠️ Failed to load text features")
 
-            # 加载视觉特征
-            print("🔄 开始加载视觉特征...")
+            # Load visual features
+            print("🔄 Loading visual features...")
             visual_data = self.load_visual_features()
             if visual_data[0] is not None:
                 visual_features, visual_labels = visual_data
-                print(f"✅ 视觉特征加载完成，形状: {visual_features.shape}")
+                print(f"✅ Visual features loaded successfully, shape: {visual_features.shape}")
             else:
                 visual_features, visual_labels = None, None
-                print("⚠️ 视觉特征加载失败")
+                print("⚠️ Failed to load visual features")
 
-            # 加载标注特征
-            print("🔄 开始加载标注特征...")
+            # Load annotation features
+            print("🔄 Loading annotation features...")
             annotation_data = self.load_annotation_features()
             if annotation_data[0] is not None:
                 annotation_features, annotation_labels = annotation_data
-                print(f"✅ 标注特征加载完成，形状: {annotation_features.shape}")
+                print(f"✅ Annotation features loaded successfully, shape: {annotation_features.shape}")
             else:
                 annotation_features, annotation_labels = None, None
-                print("⚠️ 标注特征加载失败")
+                print("⚠️ Failed to load annotation features")
 
-            # 收集所有有效的特征和标签
+            # Collect all valid features and labels
             all_features = []
             all_labels = []
             feature_names = []
@@ -306,12 +305,12 @@ class MultimodalDataLoader:
                 feature_names.append('annotation')
 
             if not all_features:
-                print("❌ 没有成功加载任何特征")
+                print("❌ No features were successfully loaded")
                 return None
 
-            print(f"✅ 成功加载 {len(all_features)} 种模态的特征: {feature_names}")
+            print(f"✅ Successfully loaded {len(all_features)} modalities of features: {feature_names}")
 
-            # 返回字典格式的数据
+            # Return data in dictionary format
             return {
                 'audio_features': audio_features,
                 'text_features': text_features,
@@ -325,24 +324,24 @@ class MultimodalDataLoader:
             }
 
         except Exception as e:
-            print(f"❌ 数据加载过程中发生错误: {e}")
+            print(f"❌ Error occurred during data loading: {e}")
             import traceback
             traceback.print_exc()
             return None
 
     def load_audio_features(self):
-        """加载音频特征"""
-        print("正在加载音频特征...")
+        """Load audio features"""
+        print("Loading audio features...")
         audio_features = []
         audio_labels = []
 
-        # 处理真实语音文件
+        # Process real audio files
         if hasattr(self.config, 'audio_true') and self.config.audio_true:
             true_files = _find_matching_files(
                 self.config.audio_true,
                 ['.wav', '.mp3', '.m4a', '.flac']
             )
-            print(f"找到 {len(true_files)} 个真实音频文件")
+            print(f"Found {len(true_files)} real audio files")
 
             for file_path in true_files:
                 try:
@@ -350,19 +349,19 @@ class MultimodalDataLoader:
                         features = self.audio_extractor.extract_comprehensive_features(file_path)
                         if features is not None and len(features) > 0:
                             audio_features.append(features)
-                            audio_labels.append(1)  # 真实标签
+                            audio_labels.append(1)  # Real label
                     else:
-                        print(f"文件不存在或为空: {file_path}")
+                        print(f"File does not exist or is empty: {file_path}")
                 except Exception as e:
-                    print(f"处理音频文件 {file_path} 时出错: {e}")
+                    print(f"Error processing audio file {file_path}: {e}")
 
-        # 处理虚假语音文件
+        # Process fake audio files
         if hasattr(self.config, 'audio_false') and self.config.audio_false:
             false_files = _find_matching_files(
                 self.config.audio_false,
                 ['.wav', '.mp3', '.m4a', '.flac']
             )
-            print(f"找到 {len(false_files)} 个虚假音频文件")
+            print(f"Found {len(false_files)} fake audio files")
 
             for file_path in false_files:
                 try:
@@ -370,19 +369,19 @@ class MultimodalDataLoader:
                         features = self.audio_extractor.extract_comprehensive_features(file_path)
                         if features is not None and len(features) > 0:
                             audio_features.append(features)
-                            audio_labels.append(0)  # 虚假标签
+                            audio_labels.append(0)  # Fake label
                     else:
-                        print(f"文件不存在或为空: {file_path}")
+                        print(f"File does not exist or is empty: {file_path}")
                 except Exception as e:
-                    print(f"处理音频文件 {file_path} 时出错: {e}")
+                    print(f"Error processing audio file {file_path}: {e}")
 
-        # 处理编辑过的虚假语音文件
+        # Process edited fake audio files
         if hasattr(self.config, 'audio_false_edited') and self.config.audio_false_edited:
             false_edited_files = _find_matching_files(
                 self.config.audio_false_edited,
                 ['.wav', '.mp3', '.m4a', '.flac']
             )
-            print(f"找到 {len(false_edited_files)} 个编辑过的虚假音频文件")
+            print(f"Found {len(false_edited_files)} edited fake audio files")
 
             for file_path in false_edited_files:
                 try:
@@ -390,44 +389,44 @@ class MultimodalDataLoader:
                         features = self.audio_extractor.extract_comprehensive_features(file_path)
                         if features is not None and len(features) > 0:
                             audio_features.append(features)
-                            audio_labels.append(0)  # 虚假标签
+                            audio_labels.append(0)  # Fake label
                     else:
-                        print(f"文件不存在或为空: {file_path}")
+                        print(f"File does not exist or is empty: {file_path}")
                 except Exception as e:
-                    print(f"处理音频文件 {file_path} 时出错: {e}")
+                    print(f"Error processing audio file {file_path}: {e}")
 
         if audio_features:
             audio_features = np.array(audio_features)
             audio_labels = np.array(audio_labels)
-            print(f"音频特征加载完成: {audio_features.shape}")
+            print(f"Audio features loaded successfully: {audio_features.shape}")
             return audio_features, audio_labels
         else:
-            print("未找到有效的音频特征")
+            print("No valid audio features found")
             return None, None
 
     def load_text_features(self):
-        """加载文本特征"""
-        print("正在加载文本特征...")
+        """Load text features"""
+        print("Loading text features...")
         text_features = []
         text_labels = []
 
-        # 处理真实文本文件
+        # Process real text files
         if hasattr(self.config, 'text_true') and self.config.text_true:
             true_files = _find_matching_files(
                 self.config.text_true,
                 ['.txt', '.csv', '.json']
             )
-            print(f"找到 {len(true_files)} 个真实文本文件")
+            print(f"Found {len(true_files)} real text files")
 
             for file_path in true_files:
                 try:
                     if not os.path.exists(file_path):
                         continue
 
-                    # 读取文本内容
+                    # Read text content
                     if file_path.endswith('.csv'):
                         df = pd.read_csv(file_path)
-                        # 假设文本在某一列中，尝试常见的列名
+                        # Assume text is in one column, try common column names
                         text_columns = ['text', 'content', 'transcript', 'sentence']
                         text_column = None
                         for col in text_columns:
@@ -437,7 +436,7 @@ class MultimodalDataLoader:
                         if text_column:
                             texts = df[text_column].dropna().tolist()
                         else:
-                            texts = df.iloc[:, 0].dropna().tolist()  # 使用第一列
+                            texts = df.iloc[:, 0].dropna().tolist()  # Use first column
                     elif file_path.endswith('.json'):
                         import json
                         with open(file_path, 'r', encoding='utf-8') as f:
@@ -445,7 +444,7 @@ class MultimodalDataLoader:
                         if isinstance(data, list):
                             texts = [str(item) for item in data]
                         elif isinstance(data, dict):
-                            # 尝试常见的键名
+                            # Try common key names
                             text_keys = ['text', 'content', 'transcript', 'sentence']
                             texts = []
                             for key in text_keys:
@@ -456,7 +455,7 @@ class MultimodalDataLoader:
                                 texts = [str(data)]
                         else:
                             texts = [str(data)]
-                    else:  # .txt文件
+                    else:  # .txt file
                         with open(file_path, 'r', encoding='utf-8') as f:
                             content = f.read().strip()
                             if content:
@@ -469,24 +468,24 @@ class MultimodalDataLoader:
                             features = self.text_extractor.extract_text_features(str(text))
                             if features is not None and len(features) > 0:
                                 text_features.append(features)
-                                text_labels.append(1)  # 真实标签
+                                text_labels.append(1)  # Real label
                 except Exception as e:
-                    print(f"处理文本文件 {file_path} 时出错: {e}")
+                    print(f"Error processing text file {file_path}: {e}")
 
-        # 处理虚假文本文件
+        # Process fake text files
         if hasattr(self.config, 'text_false') and self.config.text_false:
             false_files = _find_matching_files(
                 self.config.text_false,
                 ['.txt', '.csv', '.json']
             )
-            print(f"找到 {len(false_files)} 个虚假文本文件")
+            print(f"Found {len(false_files)} fake text files")
 
             for file_path in false_files:
                 try:
                     if not os.path.exists(file_path):
                         continue
 
-                    # 读取文本内容（与上面相同的逻辑）
+                    # Read text content (same logic as above)
                     if file_path.endswith('.csv'):
                         df = pd.read_csv(file_path)
                         text_columns = ['text', 'content', 'transcript', 'sentence']
@@ -529,86 +528,84 @@ class MultimodalDataLoader:
                             features = self.text_extractor.extract_text_features(str(text))
                             if features is not None and len(features) > 0:
                                 text_features.append(features)
-                                text_labels.append(0)  # 虚假标签
+                                text_labels.append(0)  # Fake label
                 except Exception as e:
-                    print(f"处理文本文件 {file_path} 时出错: {e}")
+                    print(f"Error processing text file {file_path}: {e}")
 
         if text_features:
             text_features = np.array(text_features)
             text_labels = np.array(text_labels)
-            print(f"文本特征加载完成: {text_features.shape}")
+            print(f"Text features loaded successfully: {text_features.shape}")
             return text_features, text_labels
         else:
-            print("未找到有效的文本特征")
+            print("No valid text features found")
             return None, None
 
     def load_visual_features(self):
-        """加载视觉特征"""
-        print("正在加载视觉特征...")
+        """Load visual features"""
+        print("Loading visual features...")
         visual_features = []
         visual_labels = []
 
-        # 处理真实视频文件
+        # Process real video files
         if hasattr(self.config, 'video_true') and self.config.video_true:
             true_files = _find_matching_files(
                 self.config.video_true,
                 ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv']
             )
-            print(f"找到 {len(true_files)} 个真实视频文件")
+            print(f"Found {len(true_files)} real video files")
 
             for file_path in true_files:
                 try:
                     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                         features = self.visual_extractor.extract_video_features(file_path)
                         if features is not None and len(features) > 0:
-                            # 如果返回多帧特征，取平均值
+                            # If multiple frames are returned, take average
                             if isinstance(features, list):
                                 if len(features) > 0:
                                     mean_features = np.mean(features, axis=0)
                                     visual_features.append(mean_features)
-                                    visual_labels.append(1)  # 真实标签
+                                    visual_labels.append(1)  # Real label
                             else:
                                 visual_features.append(features)
-                                visual_labels.append(1)  # 真实标签
+                                visual_labels.append(1)  # Real label
                     else:
-                        print(f"文件不存在或为空: {file_path}")
+                        print(f"File does not exist or is empty: {file_path}")
                 except Exception as e:
-                    print(f"处理视频文件 {file_path} 时出错: {e}")
+                    print(f"Error processing video file {file_path}: {e}")
 
-        # 处理虚假视频文件
+        # Process fake video files
         if hasattr(self.config, 'video_false') and self.config.video_false:
             false_files = _find_matching_files(
                 self.config.video_false,
                 ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv']
             )
-            print(f"找到 {len(false_files)} 个虚假视频文件")
+            print(f"Found {len(false_files)} fake video files")
 
             for file_path in false_files:
                 try:
                     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                         features = self.visual_extractor.extract_video_features(file_path)
                         if features is not None and len(features) > 0:
-                            # 如果返回多帧特征，取平均值
+                            # If multiple frames are returned, take average
                             if isinstance(features, list):
                                 if len(features) > 0:
                                     mean_features = np.mean(features, axis=0)
                                     visual_features.append(mean_features)
-                                    visual_labels.append(0)  # 虚假标签
+                                    visual_labels.append(0)  # Fake label
                             else:
                                 visual_features.append(features)
-                                visual_labels.append(0)  # 虚假标签
+                                visual_labels.append(0)  # Fake label
                     else:
-                        print(f"文件不存在或为空: {file_path}")
+                        print(f"File does not exist or is empty: {file_path}")
                 except Exception as e:
-                    print(f"处理视频文件 {file_path} 时出错: {e}")
+                    print(f"Error processing video file {file_path}: {e}")
 
         if visual_features:
             visual_features = np.array(visual_features)
             visual_labels = np.array(visual_labels)
-            print(f"视觉特征加载完成: {visual_features.shape}")
+            print(f"Visual features loaded successfully: {visual_features.shape}")
             return visual_features, visual_labels
         else:
-            print("未找到有效的视觉特征")
+            print("No valid visual features found")
             return None, None
-
-

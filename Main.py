@@ -9,9 +9,9 @@ from ModelTrainer import ModelTrainer
 from MultimodalDataLoader import MultimodalDataLoader
 
 
-# 配置中文字体支持
+# Configure Chinese font support
 def setup_chinese_font():
-    """配置matplotlib中文字体支持"""
+    """Configure matplotlib to support Chinese fonts"""
     chinese_fonts = [
         'PingFang SC', 'Hiragino Sans GB', 'Arial Unicode MS',
         'SimHei', 'Microsoft YaHei', 'WenQuanYi Micro Hei'
@@ -24,53 +24,53 @@ setup_chinese_font()
 
 
 
-# ======================== 主程序 ========================
+# ======================== Main Program ========================
 def main():
-    """主程序"""
-    print("🎯 多模态谎言检测系统")
+    """Main program"""
+    print("🎯 Multimodal Lie Detection System")
     print("=" * 60)
 
-    # 1. 配置和检查数据路径
+    # 1. Configure and check data paths
     config = DataConfig()
     if not config.check_paths():
-        print("❌ 数据路径检查失败，请确保所有数据文件存在")
+        print("❌ Data path check failed. Please ensure all data files exist.")
         return
 
-    # 2. 加载多模态数据
+    # 2. Load multimodal data
     data_loader = MultimodalDataLoader(config)
     data_result = data_loader.load_all_data()
 
     if data_result is None:
-        print("❌ 数据加载失败")
+        print("❌ Data loading failed")
         return
 
-    # 从字典中提取数据
+    # Extract data from dictionary
     audio_features = data_result.get('audio_features')
     text_features = data_result.get('text_features')
     visual_features = data_result.get('visual_features')
     annotation_features = data_result.get('annotation_features')
 
-    # 提取标签 - 使用最完整的标签集
+    # Extract labels - use the most complete label set
     audio_labels = data_result.get('audio_labels')
     text_labels = data_result.get('text_labels')
     visual_labels = data_result.get('visual_labels')
     annotation_labels = data_result.get('annotation_labels')
 
-    # 选择最大的标签集作为主要标签
+    # Select the largest label set as the primary label
     all_labels = []
     for label_set in [audio_labels, text_labels, visual_labels, annotation_labels]:
         if label_set is not None:
             all_labels.append(label_set)
 
     if not all_labels:
-        print("❌ 没有找到有效的标签")
+        print("❌ No valid labels found")
         return
 
-    # 使用最长的标签集
+    # Use the longest label set
     labels = max(all_labels, key=len)
-    print(f"📊 使用标签集，大小: {len(labels)}")
+    print(f"📊 Using label set with size: {len(labels)}")
 
-    # 检查是否有至少一种模态的数据
+    # Check if at least one modality has data
     available_modalities = []
     if audio_features is not None:
         available_modalities.append('audio')
@@ -82,55 +82,55 @@ def main():
         available_modalities.append('annotation')
 
     if not available_modalities:
-        print("❌ 没有成功加载任何模态的特征")
+        print("❌ Failed to load features from any modality")
         return
 
-    print(f"✅ 成功加载模态: {available_modalities}")
+    print(f"✅ Successfully loaded modalities: {available_modalities}")
 
-    # 3. 训练不同融合策略的模型
+    # 3. Train models with different fusion strategies
     trainer = ModelTrainer()
 
-    # 训练拼接融合模型
+    # Train concatenation fusion model
     print("\n" + "=" * 60)
-    print("🤖 开始训练拼接融合模型...")
+    print("🤖 Training Concat Fusion Model...")
     try:
         concat_model, concat_scalers = trainer.train_model(
             audio_features, text_features, visual_features, annotation_features, labels,
             fusion_type='concat', epochs=80, batch_size=16
         )
-        print("✅ 拼接融合模型训练完成")
+        print("✅ Concat fusion model training completed")
     except Exception as e:
-        print(f"❌ 拼接融合模型训练失败: {e}")
+        print(f"❌ Concat fusion model training failed: {e}")
         concat_model, concat_scalers = None, None
 
-    # 训练注意力融合模型
+    # Train attention fusion model
     print("\n" + "=" * 60)
-    print("🤖 开始训练注意力融合模型...")
+    print("🤖 Training Attention Fusion Model...")
     try:
         attention_model, attention_scalers = trainer.train_model(
             audio_features, text_features, visual_features, annotation_features, labels,
             fusion_type='attention', epochs=80, batch_size=16
         )
-        print("✅ 注意力融合模型训练完成")
+        print("✅ Attention fusion model training completed")
     except Exception as e:
-        print(f"❌ 注意力融合模型训练失败: {e}")
+        print(f"❌ Attention fusion model training failed: {e}")
         attention_model, attention_scalers = None, None
 
-    # 训练加权融合模型
+    # Train weighted fusion model
     print("\n" + "=" * 60)
-    print("🤖 开始训练加权融合模型...")
+    print("🤖 Training Weighted Fusion Model...")
     try:
         weighted_model, weighted_scalers = trainer.train_model(
             audio_features, text_features, visual_features, annotation_features, labels,
             fusion_type='weighted', epochs=80, batch_size=16
         )
-        print("✅ 加权融合模型训练完成")
+        print("✅ Weighted fusion model training completed")
     except Exception as e:
-        print(f"❌ 加权融合模型训练失败: {e}")
+        print(f"❌ Weighted fusion model training failed: {e}")
         weighted_model, weighted_scalers = None, None
 
-    # 4. 保存模型
-    print("\n💾 保存训练好的模型...")
+    # 4. Save trained models
+    print("\n💾 Saving trained models...")
     saved_models = []
 
     if concat_model is not None:
@@ -145,7 +145,7 @@ def main():
         torch.save(weighted_model.state_dict(), 'weighted_fusion_model.pth')
         saved_models.append('weighted')
 
-    # 保存特征缩放器
+    # Save feature scalers
     import pickle
     if concat_scalers is not None:
         with open('concat_scalers.pkl', 'wb') as f:
@@ -157,68 +157,68 @@ def main():
         with open('weighted_scalers.pkl', 'wb') as f:
             pickle.dump(weighted_scalers, f)
 
-    print(f"✅ 模型保存完成！成功保存的模型: {saved_models}")
+    print(f"✅ Models saved successfully! Saved models: {saved_models}")
 
-    # 5. 特征重要性分析
-    print("\n📊 生成特征分析图表...")
+    # 5. Feature importance analysis
+    print("\n📊 Generating feature analysis charts...")
     try:
         analyze_multimodal_features(audio_features, text_features, visual_features, annotation_features, labels)
-        print("✅ 特征分析完成")
+        print("✅ Feature analysis completed")
     except Exception as e:
-        print(f"❌ 特征分析失败: {e}")
+        print(f"❌ Feature analysis failed: {e}")
         import traceback
         traceback.print_exc()
 
 
 def analyze_multimodal_features(audio_features, text_features, visual_features, annotation_features, labels):
-    """多模态特征分析"""
+    """Multimodal feature analysis"""
 
-    # 1. 各模态特征重要性
+    # 1. Modality feature importance
     fig, axes = plt.subplots(2, 2, figsize=(20, 15))
 
-    # 音频特征重要性
+    # Audio feature importance
     audio_importance = np.var(audio_features, axis=0)
     top_audio_idx = np.argsort(audio_importance)[::-1][:15]
 
     axes[0, 0].bar(range(len(top_audio_idx)), audio_importance[top_audio_idx])
-    axes[0, 0].set_title('音频特征重要性 (Top 15)')
-    axes[0, 0].set_xlabel('特征索引')
-    axes[0, 0].set_ylabel('重要性分数')
+    axes[0, 0].set_title('Audio Feature Importance (Top 15)')
+    axes[0, 0].set_xlabel('Feature Index')
+    axes[0, 0].set_ylabel('Importance Score')
 
-    # 文本特征重要性
+    # Text feature importance
     text_importance = np.var(text_features, axis=0)
     top_text_idx = np.argsort(text_importance)[::-1][:15]
 
     axes[0, 1].bar(range(len(top_text_idx)), text_importance[top_text_idx])
-    axes[0, 1].set_title('文本特征重要性 (Top 15)')
-    axes[0, 1].set_xlabel('特征索引')
-    axes[0, 1].set_ylabel('重要性分数')
+    axes[0, 1].set_title('Text Feature Importance (Top 15)')
+    axes[0, 1].set_xlabel('Feature Index')
+    axes[0, 1].set_ylabel('Importance Score')
 
-    # 视觉特征重要性
+    # Visual feature importance
     visual_importance = np.var(visual_features, axis=0)
     top_visual_idx = np.argsort(visual_importance)[::-1][:15]
 
     axes[1, 0].bar(range(len(top_visual_idx)), visual_importance[top_visual_idx])
-    axes[1, 0].set_title('视觉特征重要性 (Top 15)')
-    axes[1, 0].set_xlabel('特征索引')
-    axes[1, 0].set_ylabel('重要性分数')
+    axes[1, 0].set_title('Visual Feature Importance (Top 15)')
+    axes[1, 0].set_xlabel('Feature Index')
+    axes[1, 0].set_ylabel('Importance Score')
 
-    # 标注特征重要性
+    # Annotation feature importance
     annotation_importance = np.var(annotation_features, axis=0)
     top_annotation_idx = np.argsort(annotation_importance)[::-1][:15]
 
     axes[1, 1].bar(range(len(top_annotation_idx)), annotation_importance[top_annotation_idx])
-    axes[1, 1].set_title('标注特征重要性 (Top 15)')
-    axes[1, 1].set_xlabel('特征索引')
-    axes[1, 1].set_ylabel('重要性分数')
+    axes[1, 1].set_title('Annotation Feature Importance (Top 15)')
+    axes[1, 1].set_xlabel('Feature Index')
+    axes[1, 1].set_ylabel('Importance Score')
 
     plt.tight_layout()
     plt.show()
 
-    # 2. 模态间相关性分析
+    # 2. Cross-modality correlation analysis
     plt.figure(figsize=(12, 8))
 
-    # 计算各模态的平均特征
+    # Compute average features per modality
     audio_mean = np.mean(audio_features, axis=1)
     text_mean = np.mean(text_features, axis=1)
     visual_mean = np.mean(visual_features, axis=1)
@@ -228,16 +228,16 @@ def analyze_multimodal_features(audio_features, text_features, visual_features, 
     correlation_matrix = np.corrcoef(modality_data.T)
 
     sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0,
-                xticklabels=['音频', '文本', '视觉', '标注'],
-                yticklabels=['音频', '文本', '视觉', '标注'])
-    plt.title('多模态特征相关性分析')
+                xticklabels=['Audio', 'Text', 'Visual', 'Annotation'],
+                yticklabels=['Audio', 'Text', 'Visual', 'Annotation'])
+    plt.title('Cross-Modality Correlation Analysis')
     plt.show()
 
-    # 3. 类别分布可视化
+    # 3. Class distribution visualization
     plt.figure(figsize=(15, 5))
 
-    # 各模态在不同类别下的分布
-    modalities = ['音频', '文本', '视觉', '标注']
+    # Distribution of features under different classes for each modality
+    modalities = ['Audio', 'Text', 'Visual', 'Annotation']
     features_list = [audio_features, text_features, visual_features, annotation_features]
 
     for i, (modality, features) in enumerate(zip(modalities, features_list)):
@@ -246,12 +246,12 @@ def analyze_multimodal_features(audio_features, text_features, visual_features, 
         true_features = features[labels == 0]
         false_features = features[labels == 1]
 
-        plt.hist(np.mean(true_features, axis=1), alpha=0.7, label='真话', bins=20)
-        plt.hist(np.mean(false_features, axis=1), alpha=0.7, label='假话', bins=20)
+        plt.hist(np.mean(true_features, axis=1), alpha=0.7, label='Truth', bins=20)
+        plt.hist(np.mean(false_features, axis=1), alpha=0.7, label='Lie', bins=20)
 
-        plt.title(f'{modality}特征分布')
-        plt.xlabel('特征值')
-        plt.ylabel('频次')
+        plt.title(f'{modality} Feature Distribution')
+        plt.xlabel('Feature Value')
+        plt.ylabel('Frequency')
         plt.legend()
 
     plt.tight_layout()

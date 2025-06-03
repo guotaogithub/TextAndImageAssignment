@@ -5,7 +5,7 @@ from sklearn.metrics import f1_score
 
 
 class LieDetectionTrainer:
-    """谎言检测模型训练器"""
+    """Trainer for a lie detection model"""
 
     def __init__(self, model, device='cpu'):
         self.model = model.to(device)
@@ -13,14 +13,14 @@ class LieDetectionTrainer:
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-        # 训练历史记录
+        # Training history
         self.train_losses = []
         self.val_losses = []
         self.train_f1_scores = []
         self.val_f1_scores = []
 
     def train_epoch(self, train_loader):
-        """训练一个epoch"""
+        """Train one epoch"""
         self.model.train()
         total_loss = 0
         all_preds = []
@@ -34,28 +34,28 @@ class LieDetectionTrainer:
 
             self.optimizer.zero_grad()
 
-            # 前向传播
+            # Forward pass
             outputs = self.model(audio_features, text_features, visual_features)
             loss = self.criterion(outputs, labels)
 
-            # 反向传播
+            # Backward pass
             loss.backward()
             self.optimizer.step()
 
             total_loss += loss.item()
 
-            # 收集预测结果
+            # Collect predictions
             preds = torch.argmax(outputs, dim=1)
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-        # 计算F1分数
+        # Calculate F1 score
         f1 = f1_score(all_labels, all_preds, average='weighted')
 
         return total_loss / len(train_loader), f1
 
     def evaluate(self, val_loader):
-        """验证模型"""
+        """Evaluate the model"""
         self.model.eval()
         total_loss = 0
         all_preds = []
@@ -82,17 +82,17 @@ class LieDetectionTrainer:
         return total_loss / len(val_loader), f1, all_preds, all_labels
 
     def train(self, train_loader, val_loader, epochs=50):
-        """完整训练流程"""
-        print("开始训练多模态谎言检测模型...")
+        """Full training process"""
+        print("Start training multimodal lie detection model...")
 
         for epoch in range(epochs):
-            # 训练
+            # Train
             train_loss, train_f1 = self.train_epoch(train_loader)
 
-            # 验证
+            # Validate
             val_loss, val_f1, val_preds, val_labels = self.evaluate(val_loader)
 
-            # 记录历史
+            # Record history
             self.train_losses.append(train_loss)
             self.val_losses.append(val_loss)
             self.train_f1_scores.append(train_f1)
@@ -107,21 +107,21 @@ class LieDetectionTrainer:
         return val_preds, val_labels
 
     def plot_training_history(self):
-        """绘制训练历史曲线"""
+        """Plot training history curves"""
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
 
-        # 损失曲线
+        # Loss curve
         ax1.plot(self.train_losses, label='Training Loss')
         ax1.plot(self.val_losses, label='Validation Loss')
-        ax1.set_title('训练损失曲线')
+        ax1.set_title('Training Loss Curve')
         ax1.set_xlabel('Epoch')
         ax1.set_ylabel('Loss')
         ax1.legend()
 
-        # F1分数曲线
+        # F1 score curve
         ax2.plot(self.train_f1_scores, label='Training F1')
         ax2.plot(self.val_f1_scores, label='Validation F1')
-        ax2.set_title('F1分数曲线')
+        ax2.set_title('F1 Score Curve')
         ax2.set_xlabel('Epoch')
         ax2.set_ylabel('F1 Score')
         ax2.legend()

@@ -3,9 +3,9 @@ import cv2
 import mediapipe as mp
 
 
-# ======================== 视觉特征提取器 ========================
+# ======================== Visual Feature Extractor ========================
 class VisualFeatureExtractor:
-    """视觉特征提取器"""
+    """Visual feature extractor"""
 
     def __init__(self):
         self.mp_face_mesh = mp.solutions.face_mesh
@@ -17,7 +17,7 @@ class VisualFeatureExtractor:
         )
 
     def extract_video_features(self, video_path):
-        """从视频中提取视觉特征"""
+        """Extract visual features from a video"""
         try:
             cap = cv2.VideoCapture(video_path)
 
@@ -30,7 +30,7 @@ class VisualFeatureExtractor:
                     break
 
                 frame_count += 1
-                if frame_count % 5 != 0:  # 每5帧采样一次
+                if frame_count % 5 != 0:  # Sample every 5 frames
                     continue
 
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -38,7 +38,7 @@ class VisualFeatureExtractor:
 
                 if results.multi_face_landmarks:
                     landmarks = results.multi_face_landmarks[0]
-                    # 提取关键面部标志点
+                    # Extract key facial landmark points
                     landmark_coords = []
                     for landmark in landmarks.landmark:
                         landmark_coords.extend([landmark.x, landmark.y])
@@ -47,17 +47,17 @@ class VisualFeatureExtractor:
             cap.release()
 
             if face_landmarks_data:
-                # 计算面部标志点的统计特征
+                # Calculate statistical features of facial landmarks
                 landmarks_array = np.array(face_landmarks_data)
                 features = [
                     np.mean(landmarks_array, axis=0),
                     np.std(landmarks_array, axis=0),
                     np.max(landmarks_array, axis=0) - np.min(landmarks_array, axis=0)
                 ]
-                return np.concatenate(features)[:300]  # 限制为300维
+                return np.concatenate(features)[:300]  # Limit to 300 dimensions
             else:
                 return np.zeros(300)
 
         except Exception as e:
-            print(f"处理视频 {video_path} 时出错: {e}")
+            print(f"Error processing video {video_path}: {e}")
             return np.zeros(300)
