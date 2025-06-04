@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Multimodal lie detection system</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px auto;
+            max-width: 800px;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo img {
+            width: 198px;
+        }
+        h1 {
+            font-size: 28px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        #loading {
+            display: none;
+            font-size: 18px;
+            color: #007BFF;
+            margin-top: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        img.cm {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <img src="{{ url_for('static', filename='taylors-university-logo-color-198x72.svg') }}" alt="Logo">
+    </div>
+    <h1>Multimodal lie detection system</h1>
+    <p>Taylor's University - Artificial Intelligence Course Assignment</p>
+</header>
+
+<form id="uploadForm" enctype="multipart/form-data">
+    <label>📄 Select Files:</label><br>
+    <input type="file" name="file" multiple><br><br>
+    <button type="button" onclick="startDetection()">🔍 Start Detection</button>
+</form>
+
+<div id="loading">🔄 Processing... Please wait.</div>
+<div id="result"></div>
+
+<script>
+function startDetection() {
+    const form = document.getElementById('uploadForm');
+    const formData = new FormData(form);
+    const loadingDiv = document.getElementById('loading');
+    const resultDiv = document.getElementById('result');
+
+    // 显示加载中
+    loadingDiv.style.display = 'block';
+    resultDiv.innerHTML = '';
+
+    fetch('/predict', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingDiv.style.display = 'none';
+
+        let html = `<h2>✅ Result</h2>`;
+        if (data.error) {
+            html += `<p style="color:red;">❌ Error: ${data.error}</p>`;
+        } else {
+            html += `
+                <p><strong>Prediction:</strong> ${data.prediction}</p>
+                <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(2)}%</p>
+                <p><strong>Probabilities:</strong> Truth: ${(data.probabilities[0] * 100).toFixed(2)}%, Lie: ${(data.probabilities[1] * 100).toFixed(2)}%</p>
+            `;
+            if (data.confusion_matrix) {
+                html += `<img class="cm" src="data:image/png;base64,${data.confusion_matrix}" alt="Confusion Matrix">`;
+            }
+        }
+
+        resultDiv.innerHTML = html;
+    })
+    .catch(error => {
+        loadingDiv.style.display = 'none';
+        resultDiv.innerHTML = `<p style="color:red;">❌ Network error: ${error.message}</p>`;
+    });
+}
+</script>
+
+</body>
+</html>

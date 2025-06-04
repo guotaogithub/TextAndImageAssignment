@@ -71,34 +71,35 @@ class MultimodalFusionModel(nn.Module):
             )
 
     def forward(self, audio_features, text_features, visual_features, annotation_features):
-        # Feature projection
-        audio_proj = self.audio_proj(audio_features)
-        text_proj = self.text_proj(text_features)
-        visual_proj = self.visual_proj(visual_features)
-        annotation_proj = self.annotation_proj(annotation_features)
+        projections = []
 
+        if audio_features is not None and not (audio_features == 0).all():
+            projections.append(self.audio_proj(audio_features))
+        if text_features is not None and not (text_features == 0).all():
+            projections.append(self.text_proj(text_features))
+        if visual_features is not None and not (visual_features == 0).all():
+            projections.append(self.visual_proj(visual_features))
+        if annotation_features is not None and not (annotation_features == 0).all():
+            projections.append(self.annotation_proj(annotation_features))
+
+        if not projections:
+            raise ValueError("No valid features provided for any modality")
+
+        # 融合方式
         if self.fusion_type == 'concat':
-            # Concatenation fusion
-            fused_features = torch.cat([audio_proj, text_proj, visual_proj, annotation_proj], dim=1)
+            fused_features = torch.cat(projections, dim=1)
             output = self.classifier(fused_features)
 
         elif self.fusion_type == 'attention':
-            # Attention-based fusion
-            # Shape: (seq_len=4, batch_size, hidden_dim)
-            features_seq = torch.stack([audio_proj, text_proj, visual_proj, annotation_proj], dim=0)
-            attended_features, attention_weights = self.attention(features_seq, features_seq, features_seq)
-            # Average pooling
+            features_seq = torch.stack(projections, dim=0)
+            attended_features, _ = self.attention(features_seq, features_seq, features_seq)
             fused_features = torch.mean(attended_features, dim=0)
             fused_features = self.norm(fused_features)
             output = self.classifier(fused_features)
 
         elif self.fusion_type == 'weighted':
-            # Weighted fusion
-            weights = torch.softmax(self.modality_weights, dim=0)
-            fused_features = (weights[0] * audio_proj +
-                              weights[1] * text_proj +
-                              weights[2] * visual_proj +
-                              weights[3] * annotation_proj)
-            output = self.classifier(fused_features)
+            weights = torch.softmax(self.modality_weights[:len(projections)], dim=0)
+            weighted_sum = sum(w * f for w, f in zip(weights, projections))
+            output = self.classifier(weighted_sum)
 
-        return output
+        return output  # 只返回主任务输出

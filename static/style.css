@@ -1,0 +1,39 @@
+body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    margin: 40px auto;
+    max-width: 800px;
+    padding: 20px;
+    background-color: #fafafa;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.logo img {
+    width: 198px;
+    height: auto;
+}
+
+form {
+    text-align: center;
+}
+
+input[type="file"] {
+    margin: 10px 0;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#result {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}

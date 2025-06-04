@@ -22,8 +22,6 @@ def setup_chinese_font():
 
 setup_chinese_font()
 
-
-
 # ======================== Main Program ========================
 def main():
     """Main program"""
@@ -44,7 +42,7 @@ def main():
         print("❌ Data loading failed")
         return
 
-    # Extract data from dictionary
+    # Extract data from a dictionary
     audio_features = data_result.get('audio_features')
     text_features = data_result.get('text_features')
     visual_features = data_result.get('visual_features')
@@ -82,10 +80,10 @@ def main():
         available_modalities.append('annotation')
 
     if not available_modalities:
-        print("❌ Failed to load features from any modality")
+        print("Failed to load features from any modality")
         return
 
-    print(f"✅ Successfully loaded modalities: {available_modalities}")
+    print(f"Successfully loaded modalities: {available_modalities}")
 
     # 3. Train models with different fusion strategies
     trainer = ModelTrainer()

@@ -1,3 +1,5 @@
+import os
+
 import librosa
 import numpy as np
 
@@ -13,6 +15,8 @@ class AudioFeatureExtractor:
     def extract_comprehensive_features(self, audio_path):
         """Extract comprehensive audio features"""
         try:
+            if not os.path.exists(audio_path):
+                return np.zeros(64)
             # Load audio
             y, sr = librosa.load(audio_path, sr=self.sr)
 
